@@ -8,17 +8,17 @@ import (
 	"sync"
 	_ "github.com/go-sql-driver/mysql"
 	"fmt"
-	"github.com/jiongzhao/order-trus/cache"
+	//"github.com/jiongzhao/kuaicha/cache"
 	"github.com/kusora/dlog"
-	"reflect"
-	"github.com/jiongzhao/order-trus/util"
-	"github.com/jiongzhao/cmser/config"
+	//"reflect"
+	//"github.com/jiongzhao/order-trus/util"
+	"github.com/kusora/cmser/config"
 )
 
 type Model struct {
 	m           orm.Ormer
 	redisClient *redis.Client
-	cache       *cache.SimpleCache
+	//cache       *cache.SimpleCache
 }
 
 var tables []interface{}
@@ -79,7 +79,7 @@ func NewModel() *Model {
 	m := &Model{
 		m : orm.NewOrm(),
 		redisClient:   redisClient,
-		cache: cache.NewSimpleCache(),
+		//cache: cache.NewSimpleCache(),
 	}
 	return m
 }
@@ -87,20 +87,20 @@ func NewModel() *Model {
 var once sync.Once
 
 func (m *Model) TruncateTables() error {
-	if config.Instance().Env == "staging" {
-		m.redisClient.FlushAll()
-		for _, table := range tables {
-			t := reflect.TypeOf(table)
-			tableName := util.Camel2underscore(t.Elem().Name())
-			result := m.m.Raw("truncate table `" + tableName + "`")
-			_, err := result.Exec()
-			if err != nil {
-				fmt.Println(err)
-				return err
-			}
-		}
-		return nil
-	}
+	//if config.Instance().Env == "staging" {
+	//	m.redisClient.FlushAll()
+	//	for _, table := range tables {
+	//		t := reflect.TypeOf(table)
+	//		tableName := util.Camel2underscore(t.Elem().Name())
+	//		result := m.m.Raw("truncate table `" + tableName + "`")
+	//		_, err := result.Exec()
+	//		if err != nil {
+	//			fmt.Println(err)
+	//			return err
+	//		}
+	//	}
+	//	return nil
+	//}
 	return errors.New("not allow to truncate table other than staging env")
 }
 

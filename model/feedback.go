@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 	"github.com/astaxie/beego/orm"
+	"github.com/kusora/dlog"
 )
 
 const (
@@ -39,4 +40,14 @@ func (m *Model) InsertFeedback(fb *Feedback) error {
 		_, err := o.Insert(fb)
 		return err
 	})
+}
+
+func (m *Model) GetUserSendFeedbacks() ([]*Feedback, error) {
+	var feedbacks []*Feedback
+	cnt, err := m.m.QueryTable("feedback").Filter("feedback_type", 0).All(&feedbacks)
+	if err != nil {
+		return nil, err
+	}
+	dlog.Info("query %d records", cnt)
+	return feedbacks, nil
 }

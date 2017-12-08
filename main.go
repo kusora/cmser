@@ -1,31 +1,55 @@
 package main
 
 import (
-	"flag"
 	"github.com/kusora/dlog"
-	"github.com/jiongzhao/cmser/model"
+	"github.com/kusora/cmser/model"
 	"os"
 	"gopkg.in/bufio.v1"
 	"strings"
-	"github.com/jiongzhao/cmser/config"
+	"github.com/kusora/cmser/config"
 	"strconv"
 	"encoding/base64"
 	"time"
+	"github.com/kusora/cmser/util"
+	"net/http"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"github.com/kusora/cmser/cmd"
 )
 
 func main() {
-
-	dlog.Info("%v", config.GetCurrentDirectory)
-	fname := flag.String("file", "./feedback_all.csv", "数据文件")
-	conf := flag.String("conf", "./cmser.conf", "配置文件")
-	flag.Parse()
-	dlog.Info("%s", *fname)
-
-	config.Init(*conf)
-
 	m := model.NewModel()
+	feedbacks, err := m.GetUserSendFeedbacks()
+	if err != nil {
+		os.Exit(1)
+	}
 
-	f, err := os.Open(*fname)
+	// 这里按照分组来, 先处理1000条
+	strs := make([]string, 0, 1000)
+	for _, feedback := range feedbacks[:1000] {
+		if !util.ContainChineseChar(feedback.Feedback) {
+			dlog.Info("not contain chinese char %s", feedback.Feedback)
+			continue
+		}
+
+		if feedback.Feedback == "" {
+			continue
+		}
+		strs = append(strs, feedback.Feedback)
+	}
+
+	groups := cmd.Groups(strs)
+
+	for id, group := range groups {
+		dlog.Info("%d: %v", id, group)
+	}
+}
+
+func readToDb(fname string) {
+	config.Init("./cmser.conf")
+	m := model.NewModel()
+	f, err := os.Open(fname)
 	if err != nil {
 		dlog.Error("%v", err)
 		os.Exit(1)
