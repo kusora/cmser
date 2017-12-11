@@ -4,6 +4,7 @@ import (
 	"time"
 	"github.com/astaxie/beego/orm"
 	"github.com/kusora/dlog"
+	"encoding/json"
 )
 
 const (
@@ -19,18 +20,23 @@ type Feedback struct {
 	UserId            int64 //0: 表示该用户匿名
 	Feedback          string
 	Status            int
-	Latitude          float64
-	Longitude         float64
-	ServiceId         int64 //不再使用ServiceId，采用ServiceName来表示客服身份
 	ServiceName       string
 	RelatedFeedbackId int64
 	FeedbackType      int // 0: 用户上行 1：客服回复
-	DeviceGuid        string
 	CreatedAt         time.Time
-	Platform          string
-	AppVersion        string
-	DeviceModel       string
-	UserAgent         string
+}
+
+func (fb *Feedback) MarshalJSON() ([]byte, error) {
+	m := map[string]interface{} {
+		"feedback_id": fb.FeedbackId,
+		"feedback": fb.Feedback,
+		"status": fb.Status,
+		"service_name": fb.ServiceName,
+		"feedback_type": fb.FeedbackType,
+		"created_at": fb.CreatedAt.Format("20060102150405"),
+	}
+
+	return json.Marshal(m)
 }
 
 
@@ -49,5 +55,15 @@ func (m *Model) GetUserSendFeedbacks() ([]*Feedback, error) {
 		return nil, err
 	}
 	dlog.Info("query %d records", cnt)
+	return feedbacks, nil
+}
+
+func (m *Model) GetAllFeedbacks() ([]*Feedback, error) {
+	var feedbacks []*Feedback
+	_, err := m.m.QueryTable("feedback").All(&feedbacks)
+	if err != nil {
+		return nil, err
+	}
+	dlog.Info("query %d records", len(feedbacks))
 	return feedbacks, nil
 }

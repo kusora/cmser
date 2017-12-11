@@ -34,6 +34,7 @@ func NewModel() *Model {
 		// orm.DefaultTimeLoc = time.UTC
 		orm.RegisterDataBase("default", "mysql", config.Instance().DbConn, 30/*maxIdle*/, 30/* maxConn*/)
 		orm.RegisterModel(tables...)
+		orm.DefaultRowsLimit = 100000
 	})
 
 	var redisClient *redis.Client = nil
