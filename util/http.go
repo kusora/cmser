@@ -1,21 +1,20 @@
 package util
 
 import (
-	"time"
+	//"time"
 	"io"
 	"compress/gzip"
 	"io/ioutil"
 	"net/url"
 	"bytes"
 	"net/http"
-	"github.com/kusora/dlog"
 )
 
 func HttpPostUrlValuesRawResult(c *http.Client, link string, params url.Values) (int, []byte, error) {
 	//defer statsdTrace(link)()
-	start := time.Now()
+	//start := time.Now()
 	postDataStr := params.Encode()
-	dlog.Println(link, postDataStr)
+	//dlog.Println(link, postDataStr)
 	postDataBytes := []byte(postDataStr)
 	reqest, err := http.NewRequest("POST", link, bytes.NewReader(postDataBytes))
 	if err != nil {
@@ -38,7 +37,7 @@ func HttpPostUrlValuesRawResult(c *http.Client, link string, params url.Values) 
 		if response != nil && response.Body != nil {
 			response.Body.Close()
 		}
-		dlog.Info("call [%s] in [%d] nanoseconds", link, time.Since(start).Nanoseconds())
+		//dlog.Info("call [%s] in [%d] nanoseconds", link, time.Since(start).Nanoseconds())
 	}()
 	if response.Body == nil {
 		return http.StatusInternalServerError, nil, err
@@ -54,7 +53,7 @@ func HttpPostUrlValuesRawResult(c *http.Client, link string, params url.Values) 
 
 	html, err := ioutil.ReadAll(reader)
 
-	dlog.Info("response %s, request %s", string(html), link)
+	//dlog.Info("response %s, request %s", string(html), link)
 	if err != nil {
 		return response.StatusCode, nil,err
 	}

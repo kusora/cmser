@@ -11,11 +11,10 @@ import (
 	"encoding/base64"
 	"time"
 	"github.com/kusora/cmser/util"
-	"net/http"
-	"encoding/json"
-	"fmt"
-	"net/url"
 	"github.com/kusora/cmser/cmd"
+)
+const (
+	LEVEL_SAME = 0.75
 )
 
 func main() {
@@ -26,23 +25,50 @@ func main() {
 	}
 
 	// 这里按照分组来, 先处理1000条
-	strs := make([]string, 0, 1000)
-	for _, feedback := range feedbacks[:1000] {
+	strs := make([]string, 0, 100000)
+	for _, feedback := range feedbacks {
 		if !util.ContainChineseChar(feedback.Feedback) {
 			dlog.Info("not contain chinese char %s", feedback.Feedback)
 			continue
 		}
 
-		if feedback.Feedback == "" {
+		if len(feedback.Feedback) < 6 {
 			continue
 		}
 		strs = append(strs, feedback.Feedback)
 	}
 
-	groups := cmd.Groups(strs)
+	groups := make([][]int, 0)
+	flags := make(map[int]bool, 0)
 
+	for id, str := range strs {
+		if _, ok := flags[id]; ok {
+			continue
+		}
+		rates, err := cmd.GetRelations(str, strs)
+		if err != nil {
+			dlog.Error("failed to get rates %+v", err)
+			continue
+		}
+		group := make([]int, 0)
+		for nid, rate := range rates {
+			if rate > LEVEL_SAME {
+				group = append(group, nid)
+				flags[nid] = true
+			}
+		}
+		if len(group) > 1 {
+			groups = append(groups, group)
+		}
+	}
+
+
+	dlog.Info("has %d groups", len(groups))
 	for id, group := range groups {
-		dlog.Info("%d: %v", id, group)
+		dlog.Info("group: %d", id)
+		for _, strId := range group {
+			dlog.Info("%s", strs[strId])
+		}
 	}
 }
 

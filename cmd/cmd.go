@@ -36,7 +36,7 @@ func Groups(input []string) [][]string {
 
 	// todo 直接修改relationData， 将》0.8的点修改为1, 这样进行聚类
 
-
+	return nil
 }
 
 
@@ -48,8 +48,8 @@ func GetRelations(key string, values []string) ([]float64, error) {
 	data, _ := json.Marshal(values)
 
 	resp := make([]byte, 0)
-	status, resp, err := util.HttpPostUrlValuesRawResult(http.DefaultClient, "http://10.143.248.75:666/nlnop/api/similarity", url.Values{
-		"key":  []string{"呵呵哒"},
+	status, resp, err := util.HttpPostUrlValuesRawResult(http.DefaultClient, "http://192.168.59.100:8080/api/similarity", url.Values{
+		"key":  []string{key},
 		"value": []string{string(data)},
 	})
 	if err != nil || status != http.StatusOK {
