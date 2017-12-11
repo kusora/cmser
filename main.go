@@ -14,7 +14,7 @@ import (
 	"github.com/kusora/cmser/cmd"
 )
 const (
-	LEVEL_SAME = 0.75
+	LEVEL_SAME = 0.60
 )
 
 func main() {

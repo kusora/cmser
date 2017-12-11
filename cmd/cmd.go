@@ -48,7 +48,8 @@ func GetRelations(key string, values []string) ([]float64, error) {
 	data, _ := json.Marshal(values)
 
 	resp := make([]byte, 0)
-	status, resp, err := util.HttpPostUrlValuesRawResult(http.DefaultClient, "http://192.168.59.100:8080/api/similarity", url.Values{
+	//status, resp, err := util.HttpPostUrlValuesRawResult(http.DefaultClient, "http://192.168.59.100:8080/api/similarity", url.Values{
+	status, resp, err := util.HttpPostUrlValuesRawResult(http.DefaultClient, "http://10.143.248.75:666/nlnop/api/similarity", url.Values{
 		"key":  []string{key},
 		"value": []string{string(data)},
 	})
