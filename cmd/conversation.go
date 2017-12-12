@@ -103,7 +103,14 @@ func BuildConversations(feedbacks []*model.Feedback) *UserConversation {
 			}
 
 			hasReply := false
-			for _, feedback := range feedbacks[from:id+1] {
+			firstId := -1
+			for id, feedback := range feedbacks[from:id+1] {
+				if firstId < 0 && feedback.FeedbackType != 0 {
+					continue
+				}
+				if feedback.FeedbackType == 0 && firstId < 0 {
+					firstId = id
+				}
 				if feedback.FeedbackType == 1 {
 					hasReply = true
 					break

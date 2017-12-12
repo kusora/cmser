@@ -8,6 +8,7 @@ import (
 	"github.com/kusora/cmser/cmd"
 	"encoding/json"
 	"io/ioutil"
+	"fmt"
 )
 const (
 	LEVEL_SAME = 0.60
@@ -16,6 +17,40 @@ const (
 
 func main() {
 	m := model.NewModel()
+	data, err := ioutil.ReadFile("conversation.json")
+	if err != nil {
+		dlog.Error("failed to read file, %+v", err)
+		return
+	}
+
+	userConversation := make([]*cmd.UserConversation, 0)
+	err = json.Unmarshal(data, &userConversation)
+	if err != nil {
+		dlog.Error("failed to unmarshal, %+v", err)
+		return
+	}
+
+	qfs := make([]*model.Feedback, 0)
+	// 这一遍先看看效果, 先不使用上下文关系，也不修改相似性函数
+	for _, uc := range userConversation {
+		for _, conversation := range uc.Conversations {
+			for _, feedback := range conversation {
+				if feedback.FeedbackType == model.FEEDBACK_TYPE_REPLY {
+					qfs = append(qfs, feedback)
+				}
+			}
+		}
+	}
+
+	groups := Groups(m, qfs)
+	// 下面打印出相似
+
+
+
+}
+
+
+func ReadConversations(m *model.Model) {
 	feedbacks, err := m.GetAllFeedbacks()
 	if err != nil {
 		dlog.Error("failed to get all feedbacks, err %+v", err)
@@ -36,25 +71,11 @@ func main() {
 	}
 }
 
-
-func Hehe() {
-	m := model.NewModel()
-	feedbacks, err := m.GetUserSendFeedbacks()
-	if err != nil {
-		os.Exit(1)
-	}
-
+// 设置阈值也是为了减少请求, 返回了分组
+func Groups(m *model.Model, feedbacks []*model.Feedback) [][]int {
 	// 这里按照分组来, 先处理1000条
 	strs := make([]string, 0, 100000)
 	for _, feedback := range feedbacks {
-		if !util.ContainChineseChar(feedback.Feedback) {
-			dlog.Info("not contain chinese char %s", feedback.Feedback)
-			continue
-		}
-
-		if len(feedback.Feedback) < 6 {
-			continue
-		}
 		strs = append(strs, feedback.Feedback)
 	}
 
@@ -81,15 +102,7 @@ func Hehe() {
 			groups = append(groups, group)
 		}
 	}
-
-
-	dlog.Info("has %d groups", len(groups))
-	for id, group := range groups {
-		dlog.Info("group: %d", id)
-		for _, strId := range group {
-			dlog.Info("%s", strs[strId])
-		}
-	}
+	return groups
 }
 
 //func readToDb(fname string) {
