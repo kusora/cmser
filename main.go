@@ -3,21 +3,46 @@ package main
 import (
 	"github.com/kusora/dlog"
 	"github.com/kusora/cmser/model"
-	"os"
-	"github.com/kusora/cmser/util"
 	"github.com/kusora/cmser/cmd"
 	"encoding/json"
 	"io/ioutil"
-	"fmt"
+	"time"
+	"sort"
 )
+
 const (
-	LEVEL_SAME = 0.60
+	LEVEL_SAME = 0.70
 )
 
 
 func main() {
+	data, err := ioutil.ReadFile("groups_70.json")
+	if err != nil {
+		dlog.Error("failed to read file %+v", err)
+		return
+	}
+
+	result := make([]interface{}, 0)
+
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		dlog.Error("failed to unmarshao %+v", err)
+		return
+	}
+
+	newData, err := json.MarshalIndent(result, "", "\t")
+	if err != nil {
+		dlog.Error("failed to marshal %+v", err)
+		return
+	}
+
+	ioutil.WriteFile("groups_indent.json", newData, 0666)
+}
+
+func SaveAllGorups() {
 	m := model.NewModel()
-	data, err := ioutil.ReadFile("conversation.json")
+	//SaveConversations(m)
+	data, err := ioutil.ReadFile("./conversations.json")
 	if err != nil {
 		dlog.Error("failed to read file, %+v", err)
 		return
@@ -31,10 +56,14 @@ func main() {
 	}
 
 	qfs := make([]*model.Feedback, 0)
+	mfs := make(map[int64]*model.Feedback, 0)
+	u2cs := make(map[int64]*cmd.UserConversation, 0)
 	// 这一遍先看看效果, 先不使用上下文关系，也不修改相似性函数
 	for _, uc := range userConversation {
+		u2cs[uc.UserId] = uc
 		for _, conversation := range uc.Conversations {
 			for _, feedback := range conversation {
+				mfs[feedback.FeedbackId] = feedback
 				if feedback.FeedbackType == model.FEEDBACK_TYPE_REPLY {
 					qfs = append(qfs, feedback)
 				}
@@ -43,14 +72,57 @@ func main() {
 	}
 
 	groups := Groups(m, qfs)
-	// 下面打印出相似
+	result := make([][][]string, 0)
+	for _, group := range groups {
+		groupInfo := make([][]string, 0)
+		// 先收集问题
+		asks := make([]string, 0)
+		answers := make([]string, 0)
+		for _, q := range group {
+			feedback := mfs[q]
+			answers = append(answers, feedback.Feedback)
+			if feedback.RelatedFeedbackId > 0 {
+				if fb, ok := mfs[feedback.RelatedFeedbackId]; ok {
+					asks = append(asks, fb.Feedback)
+					continue
+				}
+			}
+			uc := u2cs[feedback.UserId]
+			for _, conversation := range uc.Conversations {
+				for id, fb := range conversation {
+					if fb.FeedbackId == feedback.FeedbackId && id > 0 && conversation[id-1].FeedbackType == model.FEEDBACK_TYPE_USER {
+						asks = append(asks, conversation[id-1].Feedback)
+					}
+				}
+			}
+		}
+		asks = Dedup(asks)
+		answers = Dedup(answers)
+		groupInfo = append(groupInfo, asks, answers)
+		result = append(result, groupInfo)
+	}
 
-
-
+	groupData, _ := json.Marshal(result)
+	ioutil.WriteFile("groups.json", groupData, 0666)
 }
 
 
-func ReadConversations(m *model.Model) {
+func Dedup(strs []string) []string {
+	if len(strs) == 0 {
+		return strs
+	}
+
+	sort.Strings(strs)
+	newStrs := []string{strs[0]}
+	for _, str := range strs {
+		if str != newStrs[len(newStrs)-1] {
+			newStrs = append(newStrs, str)
+		}
+	}
+	return newStrs
+}
+
+func SaveConversations(m *model.Model) {
 	feedbacks, err := m.GetAllFeedbacks()
 	if err != nil {
 		dlog.Error("failed to get all feedbacks, err %+v", err)
@@ -72,35 +144,58 @@ func ReadConversations(m *model.Model) {
 }
 
 // 设置阈值也是为了减少请求, 返回了分组
-func Groups(m *model.Model, feedbacks []*model.Feedback) [][]int {
+func Groups(m *model.Model, feedbacks []*model.Feedback) [][]int64 {
+	dlog.Info("has %d feedbacks", len(feedbacks))
 	// 这里按照分组来, 先处理1000条
 	strs := make([]string, 0, 100000)
 	for _, feedback := range feedbacks {
 		strs = append(strs, feedback.Feedback)
 	}
 
-	groups := make([][]int, 0)
+	groups := make([][]int64, 0)
 	flags := make(map[int]bool, 0)
+	leftStrs := strs
+	leftIds := make([]int, 0)
+	for id, _ := range strs {
+		leftIds = append(leftIds, id)
+	}
 
 	for id, str := range strs {
+		now := time.Now()
+		if id % 30 == 0 {
+			leftStrs = make([]string, 0)
+			leftIds = make([]int, 0)
+			for newid, newstr := range strs {
+				if _, ok := flags[newid]; ok {
+					continue
+				}
+				leftStrs = append(leftStrs, newstr)
+				leftIds = append(leftIds, newid)
+			}
+		}
+
+
 		if _, ok := flags[id]; ok {
 			continue
 		}
-		rates, err := cmd.GetRelations(str, strs)
+
+
+		rates, err := cmd.GetRelations(str, leftStrs)
 		if err != nil {
-			dlog.Error("failed to get rates %+v", err)
+			dlog.Error("failed to get rates %+v, %d", err, id)
 			continue
 		}
-		group := make([]int, 0)
+		group := make([]int64, 0)
 		for nid, rate := range rates {
 			if rate > LEVEL_SAME {
-				group = append(group, nid)
-				flags[nid] = true
+				group = append(group, feedbacks[leftIds[nid]].FeedbackId)
+				flags[leftIds[nid]] = true
 			}
 		}
 		if len(group) > 1 {
 			groups = append(groups, group)
 		}
+		dlog.Info("finish query %d,  %.2f seconds, groups %d, passed fbs %d", id, time.Now().Sub(now).Seconds(), len(groups), len(flags))
 	}
 	return groups
 }

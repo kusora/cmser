@@ -8,10 +8,8 @@ import (
 )
 
 type Reply struct {
-	Message string `json:"message"`
-	Weight  int `json:"weight"`  //这句话的用处
-	From    string `json:"from"` //讲话者
-	Ts      string `json:"ts"`   //20060102150405  讲话时间
+	Ask string `json:"ask"`
+	Answer string `json:"answer"`
 }
 
 
@@ -19,6 +17,7 @@ type UserConversation struct {
 	UserId int64 `json:"user_id"`
 	Conversations [][]*model.Feedback `json:"conversations"`
 }
+
 
 
 /* 目标是找到有效对话

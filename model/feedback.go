@@ -4,7 +4,6 @@ import (
 	"time"
 	"github.com/astaxie/beego/orm"
 	"github.com/kusora/dlog"
-	"encoding/json"
 )
 
 const (
@@ -17,27 +16,27 @@ const (
 
 type Feedback struct {
 	FeedbackId        int64 `json:"feedback_id" orm:"pk"`
-	UserId            int64 //0: 表示该用户匿名
-	Feedback          string
-	Status            int
-	ServiceName       string
-	RelatedFeedbackId int64
-	FeedbackType      int // 0: 用户上行 1：客服回复
-	CreatedAt         time.Time
+	UserId            int64  `json:"user_id"`
+	Feedback          string  `json:"feedback"`
+	Status            int  `json:"status"`
+	ServiceName       string `json:"service_name"`
+	RelatedFeedbackId int64 `json:"related_feedback_id"`
+	FeedbackType      int `json:"feedback_type"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
-func (fb *Feedback) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{} {
-		"feedback_id": fb.FeedbackId,
-		"feedback": fb.Feedback,
-		"status": fb.Status,
-		"service_name": fb.ServiceName,
-		"feedback_type": fb.FeedbackType,
-		"created_at": fb.CreatedAt.Format("20060102150405"),
-	}
-
-	return json.Marshal(m)
-}
+//func (fb *Feedback) MarshalJSON() ([]byte, error) {
+//	m := map[string]interface{} {
+//		"feedback_id": fb.FeedbackId,
+//		"feedback": fb.Feedback,
+//		"status": fb.Status,
+//		"service_name": fb.ServiceName,
+//		"feedback_type": fb.FeedbackType,
+//		"created_at": fb.CreatedAt.Format("20060102150405"),
+//	}
+//
+//	return json.Marshal(m)
+//}
 
 
 func (m *Model) InsertFeedback(fb *Feedback) error {
