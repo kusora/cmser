@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"time"
 	"sort"
+	"fmt"
 )
 
 const (
@@ -30,13 +31,7 @@ func main() {
 		return
 	}
 
-	newData, err := json.MarshalIndent(result, "", "\t")
-	if err != nil {
-		dlog.Error("failed to marshal %+v", err)
-		return
-	}
-
-	ioutil.WriteFile("groups_indent.json", newData, 0666)
+	fmt.Println(len(result))
 }
 
 func SaveAllGorups() {
@@ -102,7 +97,7 @@ func SaveAllGorups() {
 		result = append(result, groupInfo)
 	}
 
-	groupData, _ := json.Marshal(result)
+	groupData, _ := json.MarshalIndent(result, "", "\t")
 	ioutil.WriteFile("groups.json", groupData, 0666)
 }
 
